@@ -1,4 +1,8 @@
 import { Component, EventEmitter, OnInit, Output } from '@angular/core';
+import { Router } from '@angular/router';
+import { Subscription } from 'rxjs';
+import { AuthService } from '../auth/auth.service';
+import { DataStorageService } from '../shared/data-storage.service';
 
 @Component({
   selector: 'app-header',
@@ -6,14 +10,39 @@ import { Component, EventEmitter, OnInit, Output } from '@angular/core';
   styleUrls: ['./header.component.css'],
 })
 export class HeaderComponent implements OnInit {
-  // Define viewClick event
-  @Output() featureSelected = new EventEmitter<string>();
+  subscription!: Subscription;
+  isAuthenticated = false;
+  constructor(
+    private dataStorageService: DataStorageService,
+    private authService: AuthService,
+    private router: Router
+  ) {}
 
-  onSelect(feature: string) {
-    this.featureSelected.emit(feature);
+  ngOnInit(): void {
+    this.subscription = this.authService.user.subscribe((user) => {
+      // this.isAuthenticated = !user ? false : true;
+      // Trick to convert the user value to true or false(if user undefined or null  for example)
+      this.isAuthenticated = !!user;
+    });
   }
 
-  constructor() {}
+  onSaveData() {
+    this.dataStorageService.storeRecipes().subscribe((res) => {
+      console.log('Saved');
+    });
+  }
 
-  ngOnInit(): void {}
+  onFetchData() {
+    this.dataStorageService.fetchRecipes().subscribe((res) => {
+      console.log('Fetched');
+    });
+  }
+
+  onLogout() {
+    this.authService.logout();
+  }
+
+  onDestroy() {
+    this.subscription.unsubscribe();
+  }
 }

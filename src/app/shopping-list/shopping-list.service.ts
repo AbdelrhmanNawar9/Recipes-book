@@ -1,4 +1,4 @@
-import { EventEmitter } from '@angular/core';
+import { Subject } from 'rxjs';
 import { Ingredient } from '../shared/ingredient.model';
 
 export class ShoppingListService {
@@ -7,15 +7,37 @@ export class ShoppingListService {
     new Ingredient('Bananna', 4),
   ];
 
-  IngredientUpdated = new EventEmitter<Ingredient[]>();
+  IngredientUpdated = new Subject<Ingredient[]>();
+  startedEditing = new Subject<number>();
 
   addIngredient(ingredient: Ingredient) {
     this.ingredients.push(ingredient);
-    this.IngredientUpdated.emit(this.ingredients.slice());
+    this.IngredientUpdated.next(this.ingredients.slice());
+  }
+  addIngredients(ingredients: Ingredient[]) {
+    // for (let ingredient of ingredients) {
+    //   this.addIngredient(ingredient);
+    // }
+
+    this.ingredients.push(...ingredients);
+    this.IngredientUpdated.next(this.ingredients.slice());
+  }
+  updateIngredient(index: number, newIngredient: Ingredient) {
+    this.ingredients[index] = newIngredient;
+    this.IngredientUpdated.next(this.ingredients.slice());
   }
 
   //   to get a copy of my ingredients list not the original one
   getIngredients() {
     return this.ingredients.slice();
+  }
+
+  getIngredient(index: number) {
+    return this.ingredients[index];
+  }
+
+  deleteIngredient(index: number) {
+    this.ingredients.splice(index, 1);
+    this.IngredientUpdated.next(this.ingredients.slice());
   }
 }
