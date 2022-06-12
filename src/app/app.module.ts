@@ -10,6 +10,8 @@ import { AppRoutingModule } from './app-routing.module';
 
 import { SharedModule } from './shared/shared.module';
 import { CoreModule } from './core.module';
+import { StoreModule } from '@ngrx/store';
+import { reducers } from './shopping-list/store/index';
 
 @NgModule({
   declarations: [AppComponent, HeaderComponent, PageNotFoundComponent],
@@ -17,6 +19,7 @@ import { CoreModule } from './core.module';
     BrowserModule.withServerTransition({ appId: 'serverApp' }),
     HttpClientModule,
     AppRoutingModule,
+    StoreModule.forRoot(reducers),
     SharedModule,
     CoreModule,
   ],
