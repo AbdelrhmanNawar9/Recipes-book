@@ -1,10 +1,15 @@
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { NgForm } from '@angular/forms';
 import { Router } from '@angular/router';
+import { Store } from '@ngrx/store';
 import { Observable, subscribeOn, Subscription } from 'rxjs';
 import { AlertComponent } from '../shared/alert/alert.component';
 import { AuthResponseData, AuthService } from './auth.service';
 import { PlaceHolderDirective } from './placeHolder.directive';
+
+import * as fromApp from '../store/app.reducer';
+
+import * as AuthActions from './store/auth.actions';
 
 @Component({
   selector: 'app-auth',
@@ -16,9 +21,17 @@ export class AuthComponent implements OnInit {
   isLoading = false;
   error: string = '';
 
-  constructor(private authService: AuthService, private router: Router) {}
+  constructor(private store: Store<fromApp.AppState>) {}
 
-  ngOnInit(): void {}
+  ngOnInit(): void {
+    this.store.select('auth').subscribe((authState) => {
+      this.isLoading = authState.loading;
+      this.error = authState.authError;
+      if (this.error) {
+        this.showErrorAlert();
+      }
+    });
+  }
 
   onSwitchMode() {
     this.isLoginMode = !this.isLoginMode;
@@ -31,29 +44,17 @@ export class AuthComponent implements OnInit {
     const email = form.value.email;
     const password = form.value.password;
 
-    let authObs: Observable<AuthResponseData>;
-
-    this.isLoading = true;
     if (this.isLoginMode) {
       // Login
-      authObs = this.authService.login(email, password);
+      this.store.dispatch(
+        new AuthActions.LoginStart({ email: email, password: password })
+      );
     } else {
       // Sign Up login
-      authObs = this.authService.signUp(email, password);
+      this.store.dispatch(
+        new AuthActions.SignupStart({ email: email, password: password })
+      );
     }
-
-    authObs.subscribe({
-      next: (resData) => {
-        this.isLoading = false;
-        this.router.navigate(['/recipes']);
-      },
-      error: (errorMessage) => {
-        this.isLoading = false;
-        this.error = errorMessage;
-        // this.showErrorAlert(errorMessage);
-        this.showErrorAlert();
-      },
-    });
 
     form.reset();
   }
@@ -67,6 +68,7 @@ export class AuthComponent implements OnInit {
   closeSub!: Subscription;
 
   private showErrorAlert() {
+    // This is a function to create a dynamic component for an error alert when there is a wrong logging in
     const viewContainerRef = this.alertHost.viewContainerRef;
     viewContainerRef.clear();
 

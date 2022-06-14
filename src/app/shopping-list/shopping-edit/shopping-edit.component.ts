@@ -5,7 +5,7 @@ import { Subscription } from 'rxjs';
 import { Ingredient } from 'src/app/shared/ingredient.model';
 
 import * as ShoppingListActions from '../store/shopping-list.actions';
-import * as fromIndex from '../store/index';
+import * as fromApp from '../../store/app.reducer';
 
 @Component({
   selector: 'app-shopping-edit',
@@ -20,9 +20,7 @@ export class ShoppingEditComponent implements OnInit {
 
   @ViewChild('f') slForm!: NgForm;
 
-  constructor(
-    private store: Store<fromIndex.AppState>
-  ) {}
+  constructor(private store: Store<fromApp.AppState>) {}
 
   ngOnInit(): void {
     this.subscription = this.store
