@@ -6,6 +6,8 @@ import { environment } from 'src/environments/environment';
 import { Actions, createEffect, ofType } from '@ngrx/effects';
 import { Injectable } from '@angular/core';
 import * as AuthActions from './auth.actions';
+import { User } from '../user.model';
+import { AuthService } from '../auth.service';
 
 export interface AuthResponseData {
   kind: string;
@@ -17,6 +19,7 @@ export interface AuthResponseData {
   registered?: boolean;
 }
 
+//  To Handle success in both signing up and logging in
 const handleAuthentication = (
   expiresIn: number,
   email: string,
@@ -24,6 +27,9 @@ const handleAuthentication = (
   token: string
 ) => {
   const expirationDate = new Date(new Date().getTime() + +expiresIn * 1000);
+  const user = new User(email, userId, token, expirationDate);
+  localStorage.setItem('userData', JSON.stringify(user));
+
   return new AuthActions.AuthenticateSuccess({
     email: email,
     userId: userId,
@@ -71,6 +77,9 @@ export class AuthEffects {
             }
           ) // Handling the success and error case for the request
           .pipe(
+            tap((resData) => {
+              this.authService.setLogoutTimer(+resData.expiresIn * 1000);
+            }),
             // must return a non error observable so that the overall stream doesn't die
             // map wrapps its return value into an observable
             map((resData) => {
@@ -112,6 +121,9 @@ export class AuthEffects {
             )
             // Handling the success and error case for the request
             .pipe(
+              tap((resData) => {
+                this.authService.setLogoutTimer(+resData.expiresIn * 1000);
+              }),
               // must return a non error observable so that the overall stream doesn't die
               // map wrapps its return value into an observable
               map((resData) => {
@@ -136,14 +148,73 @@ export class AuthEffects {
 
   // The first argument of createEffect function is a callback and it should return an action
   // The seconde augument of createEffect function is a config object whether you want to auto dispatch the returned action from the first parameter callback
-  authSuccess = createEffect(
+  authRedirect = createEffect(
     () => {
       //    actions$ returns an action(observable) and NgRx will subscribe to automatically use pipe directly
       return this.actions$.pipe(
         // Only catch the lOGIN_START actions(ofType filters an Observable of Actions into an Observable of the actions whose type strings are passed to it.)
         ofType(AuthActions.AUTHENTICATE_SUCCESS),
         tap(() => {
-          this.router.navigate(['/']);
+          console.log('wiiiiiii');
+          this.router.navigate(['/recipes']);
+        })
+      );
+    },
+    { dispatch: false }
+  );
+
+  autoLogin = createEffect(() => {
+    return this.actions$.pipe(
+      ofType(AuthActions.AUTO_LOGIN),
+      map(() => {
+        // Get data from local storage
+        const userData: {
+          email: string;
+          id: string;
+          _token: string;
+          _tokenExpirationDate: Date;
+        } = JSON.parse(localStorage.getItem('userData') || '{}');
+
+        if (!userData) {
+          return { type: 'DUMMY' };
+        }
+
+        // Create a user based on the fetched data from local storage
+        const loadedUser = new User(
+          userData.email,
+          userData.id,
+          userData._token,
+          new Date(userData._tokenExpirationDate)
+        );
+
+        // Check the validity of the token
+        if (loadedUser.token) {
+          const expirationDuration =
+            new Date(userData._tokenExpirationDate).getTime() -
+            new Date().getTime();
+
+          this.authService.setLogoutTimer(expirationDuration);
+
+          return new AuthActions.AuthenticateSuccess({
+            email: loadedUser.email,
+            userId: loadedUser.id,
+            token: loadedUser.token,
+            expirationDate: new Date(userData._tokenExpirationDate),
+          });
+        }
+        return { type: 'DUMMY' };
+      })
+    );
+  });
+
+  autoLogout = createEffect(
+    () => {
+      return this.actions$.pipe(
+        ofType(AuthActions.LOGOUT),
+        tap(() => {
+          this.authService.clearLogoutTimer();
+          localStorage.removeItem('userData');
+          this.router.navigate(['/auth']);
         })
       );
     },
@@ -153,6 +224,7 @@ export class AuthEffects {
   constructor(
     private actions$: Actions,
     private http: HttpClient,
-    private router: Router
+    private router: Router,
+    private authService: AuthService
   ) {}
 }

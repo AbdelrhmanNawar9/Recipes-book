@@ -34,7 +34,10 @@ export function authReducer(
         ...state,
         user: null,
       };
+
+    // group multipule cases(theexecution will happen if any case of the group case is matched to the switch case )
     case AuthActions.LOGIN_START:
+    case AuthActions.SIGNUP_START:
       return {
         ...state,
         authError: '',
@@ -46,6 +49,12 @@ export function authReducer(
         user: null,
         authError: action.payload,
         loading: false,
+      };
+
+    case AuthActions.CLEAR_ERROR:
+      return {
+        ...state,
+        authError: '',
       };
     default:
       return state;

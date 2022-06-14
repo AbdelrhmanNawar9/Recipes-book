@@ -1,10 +1,8 @@
 import { Component, OnInit, TemplateRef, ViewChild } from '@angular/core';
 import { NgForm } from '@angular/forms';
-import { Router } from '@angular/router';
 import { Store } from '@ngrx/store';
-import { Observable, subscribeOn, Subscription } from 'rxjs';
+import { Subscription } from 'rxjs';
 import { AlertComponent } from '../shared/alert/alert.component';
-import { AuthResponseData, AuthService } from './auth.service';
 import { PlaceHolderDirective } from './placeHolder.directive';
 
 import * as fromApp from '../store/app.reducer';
@@ -21,10 +19,12 @@ export class AuthComponent implements OnInit {
   isLoading = false;
   error: string = '';
 
+  private storeSub!: Subscription;
+
   constructor(private store: Store<fromApp.AppState>) {}
 
   ngOnInit(): void {
-    this.store.select('auth').subscribe((authState) => {
+    this.storeSub = this.store.select('auth').subscribe((authState) => {
       this.isLoading = authState.loading;
       this.error = authState.authError;
       if (this.error) {
@@ -60,7 +60,7 @@ export class AuthComponent implements OnInit {
   }
 
   onHandleError() {
-    this.error = '';
+    this.store.dispatch(new AuthActions.ClearError());
   }
 
   @ViewChild(PlaceHolderDirective, { static: true })
@@ -86,6 +86,10 @@ export class AuthComponent implements OnInit {
   onDestroy() {
     if (this.closeSub) {
       this.closeSub.unsubscribe();
+    }
+
+    if (this.storeSub) {
+      this.storeSub.unsubscribe();
     }
   }
 }
