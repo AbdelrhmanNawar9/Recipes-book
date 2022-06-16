@@ -7,11 +7,12 @@ import {
   RouterStateSnapshot,
   UrlTree,
 } from '@angular/router';
-import { map, Observable, take, tap } from 'rxjs';
+import { map, Observable, switchMap, take, tap } from 'rxjs';
 import { AuthService } from './auth.service';
 
 import * as fromApp from '../store/app.reducer';
 import { Store } from '@ngrx/store';
+import * as AuthActions from './store/auth.actions';
 
 @Injectable({ providedIn: 'root' })
 export class AuthGuard implements CanActivate {
@@ -25,11 +26,19 @@ export class AuthGuard implements CanActivate {
     state: RouterStateSnapshot
   ): boolean | UrlTree | Promise<boolean> | Observable<boolean | UrlTree> {
     return this.store.select('auth').pipe(
-      take(1),
       map((authState) => {
+        // this.store.dispatch({ type: 'recipes Guard Started' });
+        // console.log('Guard started');
+        // BUG
+        // The following line is to solve the problem of implementing the guard before the user is not set in the status , and do that only if there is no user
+        if (!authState.user) {
+          this.store.dispatch(new AuthActions.AutoLogin());
+        }
+
         return authState.user;
       }),
       map((user) => {
+        // const isAuth = user !== null ? true : false;
         const isAuth = !!user;
         if (isAuth) {
           return true;
@@ -37,11 +46,11 @@ export class AuthGuard implements CanActivate {
         //  To redirect to Authentication page
         return this.router.createUrlTree(['auth']);
       })
-      //   tap((isAuth) => {
-      //     if (!isAuth) {
-      //       this.router.navigate(['auth']);
-      //     }
-      //   })
+      // tap((isAuth) => {
+      //   if (!isAuth) {
+      //     this.router.navigate(['auth']);
+      //   }
+      // })
     );
   }
 }

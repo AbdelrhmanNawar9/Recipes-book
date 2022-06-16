@@ -35,6 +35,7 @@ const handleAuthentication = (
     userId: userId,
     token: token,
     expirationDate: expirationDate,
+    redirect: true,
   });
 };
 
@@ -154,9 +155,11 @@ export class AuthEffects {
       return this.actions$.pipe(
         // Only catch the lOGIN_START actions(ofType filters an Observable of Actions into an Observable of the actions whose type strings are passed to it.)
         ofType(AuthActions.AUTHENTICATE_SUCCESS),
-        tap(() => {
-          console.log('wiiiiiii');
-          this.router.navigate(['/recipes']);
+        tap((authSuccessAction: AuthActions.AuthenticateSuccess) => {
+          if (authSuccessAction.payload.redirect) {
+            console.log('will redirect from autoreditect');
+            this.router.navigate(['/']);
+          }
         })
       );
     },
@@ -174,6 +177,7 @@ export class AuthEffects {
           _token: string;
           _tokenExpirationDate: Date;
         } = JSON.parse(localStorage.getItem('userData') || '{}');
+        // console.log('fetched user data from localStorage: ', userData);
 
         if (!userData) {
           return { type: 'DUMMY' };
@@ -186,6 +190,7 @@ export class AuthEffects {
           userData._token,
           new Date(userData._tokenExpirationDate)
         );
+        // console.log('user : ', loadedUser);
 
         // Check the validity of the token
         if (loadedUser.token) {
@@ -200,6 +205,7 @@ export class AuthEffects {
             userId: loadedUser.id,
             token: loadedUser.token,
             expirationDate: new Date(userData._tokenExpirationDate),
+            redirect: false,
           });
         }
         return { type: 'DUMMY' };
